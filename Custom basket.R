@@ -135,4 +135,4 @@ index  <-  merge(crypto, equity, by="ref.date", all = T) %>%
   rename(c(`Last Price`=Price)) %>%
   ungroup() %>% 
   select(-c("ref.date")) %>% 
-  relocate(ticker,.before = "Last Price")
+  relocate(ticker,.before = "Last Price")  
