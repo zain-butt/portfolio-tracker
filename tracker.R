@@ -1,6 +1,10 @@
 #################################################################
-############################ TRACKER ############################
+################## MAKRET PERFORMANCE TRACKER ###################
 #################################################################
+
+# Metrics: Day-over-Day (DoD), Week-over-Week (WoW), Month-over-Month (MoM), Year-over-Year (YoY)
+# NOTE: Reporting period and trading days vary depending on timezone and asset class which is why asset classes need to be pulled in seperately
+# End results should reflect 252 trading days
 
 # Libraries ----
 
@@ -22,7 +26,6 @@ library(blastula)
 library(keyring)
 
 # Equities
- 
 df = BatchGetSymbols(
   tickers=c("^GSPC","^DJI","^IXIC","^RUT","^FTSE"),
   first.date = Sys.Date() - 366,
@@ -57,7 +60,7 @@ equities <- df$df.tickers %>%
   ungroup() %>% 
   select(-c("ref.date")) 
  
-# Treasury
+# U.S. 10 YR Treasury
 df0 = BatchGetSymbols(
   tickers=c("^TNX"),
   first.date = Sys.Date() - 366,
@@ -93,7 +96,6 @@ tres <- df0$df.tickers %>%
   select(-c("ref.date"))
 
 # Commodities
-
 df1 = BatchGetSymbols(
   tickers=c("CL=F","GC=F","SI=F"),
   first.date = Sys.Date() - 366,
@@ -146,7 +148,6 @@ df2 = BatchGetSymbols(
   be.quiet = FALSE
 )
 
-
 curr <- df2$df.tickers %>% 
   arrange(by_group=ref.date) %>% 
   select(c("ticker","price.close","ref.date"))%>%
@@ -164,7 +165,7 @@ curr <- df2$df.tickers %>%
   ungroup() %>% 
   select(-c("ref.date"))
 
-# Crypto
+# Crypto (e.g. of differnce due to asset class trading days) 
 df3 = BatchGetSymbols(
   tickers=c("BTC-USD","ETH-USD","ADA-USD","LINK-USD","DOGE-USD"),
   first.date = Sys.Date() - 366,
@@ -199,8 +200,7 @@ crypto <- df3$df.tickers %>%
   ungroup() %>% 
   select(-c("ref.date"))
 
-
-# Nikkie
+# Nikkie (e.g. of differnce due to timezone) 
 df4 = BatchGetSymbols(
   tickers=c("^N225"),
   first.date = Sys.Date() - 366,
@@ -234,3 +234,60 @@ nik = df4$df.tickers %>%
   rename(c("Last Price"=price.close)) %>%
   ungroup() %>% 
   select(-c("ref.date")) 
+
+################################################
+################  COMBINE  ALL  ################
+################################################
+
+## ADD CUSTOM BASKET CODE HERE AND add "index" in to rbind 
+
+table <- rbind(equities, nik, tres, comms, curr, crypto) %>% 
+  rename(Price="Last Price",DoD="dod",WoW="wow",MoM="mom",YoY="yoy") 
+
+## Control row order
+final_table <-  table[c(1,3,5,4,19,2,6,7,11,12,13,9,10,8,15,17,14,18,16),] %>% 
+  rename(" "=ticker)
+
+################################################
+###################  EXPORT  ###################
+################################################
+
+## Create function to control decimal points in table [for "Price" specifically]
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+## Create function to add dataframe into for formattable (formattble needs a function)
+## Positive returns will be green and negative returns red 
+
+table_format <- function(df){
+  final.table = as.htmlwidget(formattable(df,list(
+    `Price`= formatter("span", specify_decimal(df$Price,1)),
+    `DoD` = formatter("span", style = x ~ style(color = ifelse(x < 0, "red", "green"))),
+    `WoW` = formatter("span", style = x ~ style(color = ifelse(x < 0, "red", "green"))),
+    `MoM` = formatter("span", style = x ~ style(color = ifelse(x < 0, "red", "green"))),
+    `YoY` = formatter("span", style = x ~ style(color = ifelse(x < 0, "red", "green"))))))
+  final.table$dependencies <- c(final.table$dependencies)
+  final.table
+}  
+
+## Create function to save as a .png and .html file 
+
+table_webshot <- function(input, path){
+  dirname <- "c:/FOLDER"  ##REPLACE WITH YOUR OWN PATH
+  saveWidget(input, file.path(dirname, paste(path, ".html", sep = "")), selfcontained = FALSE) 
+  webshot::webshot(file.path(dirname, paste(path, ".html", sep = "")), file.path(dirname, paste(path, ".png", sep = "")))
+}
+
+## Run it...
+Tracker_ <- table_format(final_table)
+
+# KEEP IT FLEXIBLE
+today=Sys.Date()
+name = paste("Tracker_",today,sep="")
+
+# NOTE: Adding "today" in to "name" will save the file with the date the code is run. It will be helpful if you decide to add this script to task scheduler to run once a day.
+
+################################################
+##################  DRUM ROLL  #################
+################################################
+
+table_webshot(Tracker_, name)
