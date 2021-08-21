@@ -1,6 +1,6 @@
 # Portfolio tracker
 
-Create automated email to compare performance of custom index relative to various asset classes using publically available data from Yahoo finance.
+Create automated email to compare performance of custom index relative to various asset classes using publically available data from Yahoo finance in RStudio.
 
 # Order of operations:
 1. Setup.R
