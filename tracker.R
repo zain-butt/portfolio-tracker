@@ -233,4 +233,4 @@ nik = df4$df.tickers %>%
   filter(ref.date==Sys.Date()-1) %>% 
   rename(c("Last Price"=price.close)) %>%
   ungroup() %>% 
-  select(-c("ref.date"))
+  select(-c("ref.date")) 
